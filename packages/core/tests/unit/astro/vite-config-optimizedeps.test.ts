@@ -20,6 +20,9 @@ import { createViteConfig } from "../../../src/astro/integration/vite-config.js"
 describe("vite-config optimizeDeps exclude (#771)", () => {
 	function makeOptions(adapter: "cloudflare" | "node") {
 		const astroConfig: Partial<AstroConfig> = {
+			// createViteConfig() resolves projectRoot via fileURLToPath(root),
+			// so the mock needs a file URL even though optimizeDeps does not use it.
+			root: new URL("file:///tmp/emdash-test-project/"),
 			adapter:
 				adapter === "cloudflare"
 					? { name: "@astrojs/cloudflare", hooks: {} }
