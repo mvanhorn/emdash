@@ -100,10 +100,7 @@ function mockApiFetch({
 			return dataResponse({ terms });
 		}
 
-		if (
-			method === "GET" &&
-			urlString === "/_emdash/api/content/products/entry_1/terms/tags"
-		) {
+		if (method === "GET" && urlString === "/_emdash/api/content/products/entry_1/terms/tags") {
 			return dataResponse({ terms: entryTerms });
 		}
 
