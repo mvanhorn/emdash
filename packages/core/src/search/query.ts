@@ -350,9 +350,7 @@ export async function getSuggestions(
 		const ftsTable = ftsManager.getFtsTableName(collection);
 		const contentTable = ftsManager.getContentTableName(collection);
 		const hasTitleField = await collectionHasField(db, collection, "title");
-		const titleSelection = hasTitleField
-			? sql.ref("c.title")
-			: sql<string>`COALESCE(c.slug, c.id)`;
+		const titleSelection = hasTitleField ? sql.ref("c.title") : sql<string>`COALESCE(c.slug, c.id)`;
 		const titleRequired = hasTitleField ? sql`AND c.title IS NOT NULL` : sql``;
 
 		// Use prefix search for autocomplete. `escapeQuery` already appends `*`
