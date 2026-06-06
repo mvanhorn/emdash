@@ -196,8 +196,7 @@ async function searchSingleCollection(
 	}
 
 	// Get searchable fields for snippet generation
-	const searchableFields = await ftsManager.getSearchableFields(collection);
-	const hasTitleField = await collectionHasField(db, collection, "title");
+	const { searchableFields, hasTitleField } = await ftsManager.getSearchableFieldInfo(collection);
 	const titleSelection = hasTitleField ? sql.ref("c.title") : sql<string | null>`NULL`;
 
 	// Build weight string for bm25 if weights provided
@@ -349,7 +348,7 @@ export async function getSuggestions(
 
 		const ftsTable = ftsManager.getFtsTableName(collection);
 		const contentTable = ftsManager.getContentTableName(collection);
-		const hasTitleField = await collectionHasField(db, collection, "title");
+		const { hasTitleField } = await ftsManager.getSearchableFieldInfo(collection);
 		const titleSelection = hasTitleField ? sql.ref("c.title") : sql<string>`COALESCE(c.slug, c.id)`;
 		const titleRequired = hasTitleField ? sql`AND c.title IS NOT NULL` : sql``;
 
@@ -400,25 +399,6 @@ export async function getSuggestions(
 	}
 
 	return suggestions.slice(0, limit);
-}
-
-async function collectionHasField(
-	db: Kysely<Database>,
-	collection: string,
-	field: string,
-): Promise<boolean> {
-	validateIdentifier(collection, "collection slug");
-	validateIdentifier(field, "field slug");
-
-	const row = await db
-		.selectFrom("_emdash_collections as c")
-		.innerJoin("_emdash_fields as f", "f.collection_id", "c.id")
-		.select("f.id")
-		.where("c.slug", "=", collection)
-		.where("f.slug", "=", field)
-		.executeTakeFirst();
-
-	return row !== undefined;
 }
 
 /**
