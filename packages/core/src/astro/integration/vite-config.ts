@@ -322,6 +322,7 @@ export function createViteConfig(
 
 	const adminSourcePath = isDev ? resolveAdminSource(projectRoot) : undefined;
 	const useSource = adminSourcePath !== undefined;
+	const adminStylesPath = resolve(adminDistPath, "styles.css");
 
 	return {
 		// Astro SSR routes resolve version.ts from source (not tsdown dist),
@@ -336,11 +337,13 @@ export function createViteConfig(
 		resolve: {
 			dedupe: ["@emdash-cms/admin", "react", "react-dom"],
 			// Array form so more-specific entries are checked first.
-			// The styles.css alias must come before the package alias, otherwise
-			// Vite's prefix matching on "@emdash-cms/admin" would resolve
-			// "@emdash-cms/admin/styles.css" through the source directory.
+			// The stylesheet aliases must come before the package alias, otherwise
+			// Vite's prefix matching on "@emdash-cms/admin" would resolve them
+			// through the source directory. The ?url form lets the admin route emit
+			// a route-local stylesheet link instead of a dev-wide CSS module.
 			alias: [
-				{ find: "@emdash-cms/admin/styles.css", replacement: resolve(adminDistPath, "styles.css") },
+				{ find: "@emdash-cms/admin/styles.css?url", replacement: `${adminStylesPath}?url` },
+				{ find: "@emdash-cms/admin/styles.css", replacement: adminStylesPath },
 				{ find: "@emdash-cms/admin", replacement: useSource ? adminSourcePath : adminDistPath },
 				// `use-sync-external-store/shim` is a React <18 polyfill that ships
 				// only as CJS. It's pulled in transitively by `@tiptap/react`. With

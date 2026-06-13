@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { basename } from "node:path";
 
 import type { AstroConfig } from "astro";
@@ -11,6 +12,8 @@ describe("createViteConfig admin aliasing", () => {
 	const siblingProjectRoot = new URL("../../../../../../emdash-site/", import.meta.url);
 	const adminSourcePattern = /[/\\]packages[/\\]admin[/\\]src$/;
 	const adminDistPattern = /[/\\]packages[/\\]admin[/\\]dist$/;
+	const adminStylesPattern = /[/\\]packages[/\\]admin[/\\]dist[/\\]styles\.css$/;
+	const adminStylesUrlPattern = /[/\\]packages[/\\]admin[/\\]dist[/\\]styles\.css\?url$/;
 
 	function buildConfig(root: URL, command: "dev" | "build" | "preview" | "sync" = "dev") {
 		return createViteConfig(
@@ -28,21 +31,33 @@ describe("createViteConfig admin aliasing", () => {
 	}
 
 	function getAdminAliasReplacement(config: ReturnType<typeof createViteConfig>) {
+		return getAliasReplacement(config, "@emdash-cms/admin");
+	}
+
+	function getAliasReplacement(config: ReturnType<typeof createViteConfig>, find: string) {
 		const aliases = Array.isArray(config.resolve?.alias) ? config.resolve.alias : [];
 		const adminAlias = aliases.find(
 			(alias) =>
 				typeof alias === "object" &&
 				alias !== null &&
 				"find" in alias &&
-				alias.find === "@emdash-cms/admin" &&
+				alias.find === find &&
 				"replacement" in alias,
 		);
 
 		if (!adminAlias || typeof adminAlias.replacement !== "string") {
-			throw new Error("Missing @emdash-cms/admin alias");
+			throw new Error(`Missing ${find} alias`);
 		}
 
 		return adminAlias.replacement;
+	}
+
+	function getAliasIndex(config: ReturnType<typeof createViteConfig>, find: string) {
+		const aliases = Array.isArray(config.resolve?.alias) ? config.resolve.alias : [];
+		return aliases.findIndex(
+			(alias) =>
+				typeof alias === "object" && alias !== null && "find" in alias && alias.find === find,
+		);
 	}
 
 	it("uses raw admin source for local monorepo dev", () => {
@@ -75,6 +90,32 @@ describe("createViteConfig admin aliasing", () => {
 
 		expect(basename(replacement)).toBe("dist");
 		expect(replacement).toMatch(adminDistPattern);
+	});
+
+	it("aliases admin stylesheet URL imports to the compiled CSS asset", () => {
+		const config = buildConfig(monorepoDemoRoot);
+		const replacement = getAliasReplacement(config, "@emdash-cms/admin/styles.css?url");
+
+		expect(replacement).toMatch(adminStylesUrlPattern);
+	});
+
+	it("aliases bare admin stylesheet imports to the compiled CSS asset", () => {
+		const config = buildConfig(monorepoDemoRoot);
+		const replacement = getAliasReplacement(config, "@emdash-cms/admin/styles.css");
+
+		expect(replacement).toMatch(adminStylesPattern);
+	});
+
+	it("lists stylesheet aliases before the package alias", () => {
+		const config = buildConfig(monorepoDemoRoot);
+
+		const stylesUrlIdx = getAliasIndex(config, "@emdash-cms/admin/styles.css?url");
+		const stylesIdx = getAliasIndex(config, "@emdash-cms/admin/styles.css");
+		const packageIdx = getAliasIndex(config, "@emdash-cms/admin");
+
+		expect(stylesUrlIdx).toBeGreaterThanOrEqual(0);
+		expect(stylesIdx).toBeGreaterThan(stylesUrlIdx);
+		expect(packageIdx).toBeGreaterThan(stylesIdx);
 	});
 });
 
@@ -137,4 +178,16 @@ describe("createViteConfig use-sync-external-store shim aliasing", () => {
 			expect(shimIdx).toBeGreaterThan(indexIdx);
 		});
 	}
+});
+
+describe("admin route stylesheet loading", () => {
+	const adminRoute = new URL("../../../src/astro/routes/admin.astro", import.meta.url);
+
+	it("uses a route-local stylesheet link instead of a side-effect CSS import", () => {
+		const source = readFileSync(adminRoute, "utf8");
+
+		expect(source).not.toMatch(/import\s+["']@emdash-cms\/admin\/styles\.css["'];/);
+		expect(source).toContain('import adminStylesUrl from "@emdash-cms/admin/styles.css?url";');
+		expect(source).toContain('<link rel="stylesheet" href={adminStylesUrl} />');
+	});
 });
