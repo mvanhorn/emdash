@@ -124,9 +124,7 @@ describe("getEmDashEntry scheduled visibility", () => {
 	}
 
 	async function loadEntry() {
-		return runWithContext({ editMode: false, db }, () =>
-			getEmDashEntry("post", "scheduled-post"),
-		);
+		return runWithContext({ editMode: false, db }, () => getEmDashEntry("post", "scheduled-post"));
 	}
 
 	it("returns scheduled entries whose Date scheduledAt has passed", async () => {

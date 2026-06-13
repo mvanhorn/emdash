@@ -616,9 +616,7 @@ export async function getEmDashEntry<T extends string, D = InferCollectionData<T
 		const scheduledAt = dataDate(data, "scheduledAt");
 		const isPublished = status === "published";
 		const isScheduledAndReady =
-			status === "scheduled" &&
-			scheduledAt !== undefined &&
-			scheduledAt.getTime() <= Date.now();
+			status === "scheduled" && scheduledAt !== undefined && scheduledAt.getTime() <= Date.now();
 		return isPublished || !!isScheduledAndReady;
 	}
 
