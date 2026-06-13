@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
 import { Role } from "@emdash-cms/auth";
+import { describe, it, expect } from "vitest";
 
 import { GET as schemaGET } from "../../../src/astro/routes/api/schema/index.js";
 import { EmDashClient, EmDashApiError } from "../../../src/client/index.js";
@@ -576,9 +576,7 @@ describe("EmDashClient", () => {
 				interceptors: [backend],
 			});
 
-			await expect(client.schemaTypes()).resolves.toBe(
-				"export interface Post { title: string }\n",
-			);
+			await expect(client.schemaTypes()).resolves.toBe("export interface Post { title: string }\n");
 		});
 
 		it("schemaExport() throws EmDashApiError on non-2xx responses", async () => {
